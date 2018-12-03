@@ -1,28 +1,54 @@
-const NAME = 'webpack-remove-empty-js-chunks-plugin';
+import { Compiler, compilation } from 'webpack';
+import { SyncWaterfallHook} from "tapable";
+import MainTemplate = compilation.MainTemplate;
 
-const defaultOptions = {
+interface PluginOptions {
+	silent: boolean;
+	preserveEmptyAssets: boolean;
+}
+type ExcludeChunksMap = {
+	[index: string]: string;
+}
+
+type ExcludeChunksFilesMap = {
+	[index: string]: number;
+}
+
+interface MainTemplateHooks {
+	require: SyncWaterfallHook;
+	requireEnsure: SyncWaterfallHook;
+}
+
+interface WP4MainTemplate extends MainTemplate {
+	hooks: MainTemplateHooks;
+}
+
+const defaultOptions: PluginOptions = {
 	silent: true,
 	preserveEmptyAssets: false,
 };
 
-export class WebpackRemoveEmptyJschunksPlugin {
-	constructor(options) {
+export class WebpackRemoveEmptyJSChunksPlugin {
+	private _options: PluginOptions;
+	private _name: string = 'webpack-remove-empty-js-chunks-plugin';
+	private _excludeChunks: ExcludeChunksMap;
+
+	public constructor(options?: PluginOptions) {
 		this._options = Object.assign({}, defaultOptions, options);
-		this._name = NAME;
 		this._excludeChunks = {};
 	}
 
-	apply(compiler) {
-		compiler.hooks.thisCompilation.tap(this._name, compilation => {
-			compilation.mainTemplate.hooks.require.tap(this._name, () => {
-				compilation.mainTemplate.hooks.requireEnsure.tap(this._name, (source) => {
-					compilation.chunks.forEach((chunk) => {
+	apply(compiler: Compiler) {
+		compiler.hooks.thisCompilation.tap(this._name, (compilation: compilation.Compilation) => {
+			(compilation.mainTemplate as WP4MainTemplate).hooks.require.tap(this._name, () => {
+				(compilation.mainTemplate as WP4MainTemplate).hooks.requireEnsure.tap(this._name, (source) => {
+					compilation.chunks.forEach((chunk: any) => {
 						const chunkModules = chunk.getModules();
 						if (!chunkModules.length) {
 							return;
 						}
 						const isMixedModulesChunk = chunk.getModules()
-							.some(module => module.type !== 'css/mini-extract');
+							.some((module: any)=> module.type !== 'css/mini-extract');
 						if (!isMixedModulesChunk) {
 							this._excludeChunks[chunk.id] = chunk.renderedHash;
 							if (!this._options.silent) {
@@ -33,7 +59,7 @@ export class WebpackRemoveEmptyJschunksPlugin {
 					});
 					const strToSearch = 'if(installedChunkData !== 0) { // 0 means "already installed".';
 					const strParts = source.split(strToSearch);
-					const excludeChunksFiles = {};
+					const excludeChunksFiles: ExcludeChunksFilesMap = {};
 					Object.keys(this._excludeChunks).forEach(chunkId => { excludeChunksFiles[chunkId] = 1; });
 					return strParts[0] +
 						'\n' + 'const excludeFiles = ' + JSON.stringify(excludeChunksFiles) +
