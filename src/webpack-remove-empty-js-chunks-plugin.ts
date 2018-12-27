@@ -59,6 +59,10 @@ export class WebpackRemoveEmptyJSChunksPlugin {
 					});
 					const strToSearch = 'if(installedChunkData !== 0) { // 0 means "already installed".';
 					const strParts = source.split(strToSearch);
+					// we may have already updated the source
+					if (strParts.length === 1) {
+						return source;
+					}
 					const excludeChunksFiles: ExcludeChunksFilesMap = {};
 					Object.keys(this._excludeChunks).forEach(chunkId => { excludeChunksFiles[chunkId] = 1; });
 					return strParts[0] +
