@@ -66,7 +66,7 @@ export class WebpackRemoveEmptyJSChunksPlugin {
 					const excludeChunksFiles: ExcludeChunksFilesMap = {};
 					Object.keys(this._excludeChunks).forEach(chunkId => { excludeChunksFiles[chunkId] = 1; });
 					return strParts[0] +
-						'\n' + 'const excludeFiles = ' + JSON.stringify(excludeChunksFiles) +
+						'\n' + 'var excludeFiles = ' + JSON.stringify(excludeChunksFiles) +
 						'\n' + 'if(installedChunkData !== 0 && !excludeFiles[chunkId]) { // 0 means "already installed".' +
 						strParts[1];
 				});
